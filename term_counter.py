@@ -15,7 +15,6 @@ page_count=0 # count of pages that had available snapshots
 page_sum=0 # sum of term for a specific page
 term = 'climate' # the term to count
 file = 'urls.csv' # this is the file Anastasia produced after crawling /statelocalclimate
-statuses.append(version.status_code)
 with open(file) as csvfile: 
     read = csv.reader(csvfile)
     for row in read:
