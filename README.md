@@ -8,6 +8,6 @@ pip install https://github.com/edgi-govdata-archiving/web-monitoring-processing/
 
 This will enable the word count function (seen here) and the IA API. The key file is internetarchive.py, which is the API the team developed to access the CDX archive of Internet Archive snapshots.
 
-In my repo, there are two spreadsheets representing the list of URLs to check.
+In thisrepo, there are two spreadsheets representing the list of URLs to check.
 
-To run my term_counter.py script you will need to run internetarchive.py and then either figure out a way to run term_counter.py within that shell or just copy/paste line by line into the shell. :(
+To run the term_counter.py script you will need to run internetarchive.py and then either figure out a way to run term_counter.py within that shell or just copy/paste line by line into the shell. :(
