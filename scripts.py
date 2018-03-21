@@ -1,6 +1,7 @@
 #requirements for both term and link analyses
-import requests
 import csv
+import nltk
+from nltk.collocations import *
 
 
 ###TERM COUNT SCRIPTS
@@ -10,8 +11,20 @@ def count(term, content): # this function counts terms from the decoded HTML
     term = term.lower()  # normalize so as to make result case insensitive
     tally = 0
     for section in visible_text:
+        ##bigram here. instead of section.split, bigram the section
         for token in section.split():
             tally += int(term in token.lower())
+    return tally
+
+def multiterm_count (content): #this function counts phrases
+    visible_text = gvt(content)
+    tally = 0
+    for section in visible_text:
+        tokens = nltk.word_tokenize(section)
+        tokens = [x.lower() for x in tokens] #standardize to lowercase
+        bgs = nltk.bigrams(tokens)
+        fdist = nltk.FreqDist(bgs)
+        tally += fdist['social', 'costs']
     return tally
 
 sum=0 # total count of term
@@ -19,7 +32,7 @@ page_count=0 # count of pages that had available snapshots
 page_sum=0 # sum of term for a specific page
 term = 'climate' # the term to count
 
-# The below block of code is for looping through State Local Climate URLs to grab the term
+# The below block of code is for looping through State Local Climate URLs to grab the term(s)
 file = 'urls.csv' # the first file to open
 with open(file) as csvfile: 
     read = csv.reader(csvfile)
@@ -34,7 +47,7 @@ with open(file) as csvfile:
                     try:
                         url=version.raw_url
                         contents = requests.get(url).content.decode() #decode the url's HTML
-                        page_sum = count(term, contents) # count the term 
+                        page_sum = multiterm_count(contents) #count(term, contents) #count the term on the page.
                         sum += page_sum # add the page's sum to the overall sum
                         page_count += 1 # count the page
                         print(row[0], page_sum)
@@ -55,16 +68,18 @@ with open('energyurls.csv') as csvfile:
             versions = reversed(list(dump))# start from the most recent snapshots
             statuses = [row[0]]
             for version in versions:
-                statuses.append(version.status_code)
-                print(statuses)
+                #statuses.append(version.status_code)
+                #print(statuses)
                 if version.status_code != '200':
                     pass
                 else:
                     try:
                         url=version.raw_url
                         contents = requests.get(url).content.decode()
-                        sum += count(term, contents)
-                        page_count += 1
+                        page_sum = multiterm_count(contents) #count(term, contents) #count the term on the page.
+                        sum += page_sum # add the page's sum to the overall sum
+                        page_count += 1 # count the page
+                        print(row[0], page_sum)
                         break
                     except:
                         print('decoding error', version.status_code, row[0])# this will capture decoding errors
