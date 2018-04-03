@@ -4,9 +4,7 @@ A set of Python functions extending the Environmental Data and Governance Intiti
 
 ##Requirements
 
-There are a few requirements to get started. Create an environment with Python 3.6 You may need to install several requirements: requests, numpy, nltk, and BeautifulSoup. You will want to install this component from the dev team:
-
-https://github.com/edgi-govdata-archiving/web-monitoring-processing (be sure to follow their instructions about installation)
+There are a few requirements to get started. Create an environment with Python 3.6 You may need to install several requirements: requests, numpy, nltk, and BeautifulSoup. You will want to install this component from [the dev team](https://github.com/edgi-govdata-archiving/web-monitoring-processing) (be sure to follow their instructions about installation):
 
 `pip install https://github.com/edgi-govdata-archiving/web-monitoring-processing/zipball/master`
 
