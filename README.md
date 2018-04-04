@@ -22,6 +22,8 @@ Variables:
 - `datesA` describes the timeframe for which you want to capture Wayback Machine snapshots. It should be in the following form: [starting year, starting month, starting day, ending year, ending month, ending day]. `counter()` defaults to searching _backwards_ - it takes the most recently available (status code = 200) snapshot within the timeframe.
 - `datesB` = For comparing with the `datesA` timeframe. Optional. Should be in same format as `datesA`
 
+`counter("inputs/test.csv", ["climate"], [2016,1,1,2017,1,1], [2017,1,2,2018,1,1]` would report on the usage of the term "climate" on a sample of US Fish and Wildlife Service pages in 2016 and 2017.
+
 ### linker()
 
 `linker (file, domain, datesA, datesB=[])`
@@ -33,6 +35,8 @@ Variables:
 - `domain` should be a string of the domain that is being searched e.g. `"https://www.epa.gov"`
 - `datesA` describes the timeframe for which you want to capture Wayback Machine snapshots. It should be in the following form: [starting year, starting month, starting day, ending year, ending month, ending day]. `counter()` defaults to searching _backwards_ - it takes the most recently available (status code = 200) snapshot within the timeframe.
 - `datesB` = For comparing with the `datesA` timeframe. Optional. Should be in same format as `datesA`
+
+`linker ("inputs/fws.csv", "https://www.fws.gov", [2016,1,1,2017,1,1], [2017,1,2,2018,1,1])` would examine the linking structure of a sample of US Fish and Wildlife Service URLs as they exised in 2016 compared to 2017.
 
 ## Limits
 
