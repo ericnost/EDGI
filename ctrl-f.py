@@ -1,40 +1,151 @@
 #requirements
 import csv
+import numpy
 import nltk
+from nltk.corpus import stopwords
 from nltk.collocations import *
 from web_monitoring.differs import _get_visible_text as gvt # import Dan Allan's page content decoder
-import numpy
-from bs4 import BeautifulSoup # for link analysis
 import internetarchive
 import requests
+from bs4 import BeautifulSoup # for link analysis
+#from archivenow import archivenow #for pushing links to the Wayback Machine
+import caffeine
+import re
+
+default_stopwords = set(nltk.corpus.stopwords.words('english'))
+all_stopwords = default_stopwords
+
+keywords = {}
+final_urls={}
 
 #ancillary count functions
-def count(term, content): # this function counts single word terms from the decoded HTML
-    visible_text = gvt(content)
+def count(term, visible_text): # this function counts single word terms from the decoded HTML
     term = term.lower()  # normalize so as to make result case insensitive
     tally = 0
     for section in visible_text:
     	##bigram here. instead of section.split, bigram the section
         for token in section.split():
-            tally += int(term in token.lower())
+            token = re.sub(r'[^\w\s]','',token)#remove punctuation
+            tally += int(term == token.lower()) # instead of in do ==
+    #print(term, tally)
     return tally
 
-def multiterm_count (term, content): #this function counts phrases from the decoded HTML
-	visible_text = gvt(content)
+def two_count (term, visible_text): #this function counts phrases from the decoded HTML
 	tally = 0
 	length = len(term)
 	for section in visible_text:
 		tokens = nltk.word_tokenize(section)
 		tokens = [x.lower() for x in tokens] #standardize to lowercase
+		tokens = [re.sub(r'[^\w\s]','',x) for x in tokens]
 		grams=nltk.ngrams(tokens,length)
 		fdist = nltk.FreqDist(grams)
-		tally += fdist[term[0], term[1]]
+		tally += fdist[term[0].lower(), term[1].lower()] #change for specific terms
+	#print(term, tally)    
 	return tally
 
+def keyword_function(visible_text):
+    #based on https://www.strehle.de/tim/weblog/archives/2015/09/03/1569
+    keydump=[]
+    #visible_text = gvt(content)
+    new_string = "".join(visible_text)
+    words = nltk.word_tokenize(new_string)
+    # Remove single-character tokens (mostly punctuation)
+    words = [word for word in words if len(word) > 1]
+    # Remove numbers
+    words = [word for word in words if not word.isnumeric()]    
+    # Lowercase all words (default_stopwords are lowercase too)
+    words = [word.lower() for word in words]
+    # Remove stopwords
+    words = [word for word in words if word not in all_stopwords]
+    # Calculate frequency distribution
+    fdist = nltk.FreqDist(words)
+    # Output top 50 words
+    for word, frequency in fdist.most_common(3):
+        keydump.append(word)
+    #print(keydump)
+    return keydump
+        
+def multiterm_counter(file, term, dates):
+    #counts a set of one or two word terms during a single timeframe
+    #dates should be in the following form: [starting year, starting month, starting day, ending year, ending month, ending day]
+    #term should be in the format ["term"], as a phrase: ["climate", "change"], or as a set of terms and/or phrases: ["climate", ["climate", "change"]]
+
+    with open(file) as csvfile: 
+        read = csv.reader(csvfile)
+        data = list(read)
+    csvfile.close()
+
+    #multiterm_counter("test.csv", ["climate", ["energy", "independence"]], [2016, 1,1,2017,1,1], [2017,1,2,2018,1,1])
+
+    row_count = len(data)
+    column_count = len(term)
+    matrix = numpy.zeros((row_count, column_count)) 
+    
+    sum=0 # total count of term
+    page_sum=0 # sum of term for a specific page
+    for pos, row in enumerate(data):
+        thisPage = row[0] #change for specific CSVs
+        try:
+            dump = internetarchive.list_versions(thisPage, internetarchive.datetime(dates[0], dates[1],dates[2]), internetarchive.datetime(dates[3], dates[4], dates[5])) # list_versions calls the CDX API from internetarchive.py from the webmonitoring repo
+            versions = reversed(list(dump)) # start from the most recent snapshots
+            for version in versions: # for each version in all the snapshots
+                if version.status_code == '200': # if the IA snapshot was viable
+                    url=version.raw_url
+                    contents = requests.get(url).content.decode() #decode the url's HTML
+                    contents = gvt(contents)
+                    keywords[url] = keyword_function(contents)
+                    final_urls[thisPage]=url
+                    for p, t in enumerate(term):
+                        if type(t) is list:
+                            page_sum = two_count(t, contents) #multiterm_count(contents) #count(term, contents) #count the term on the page.
+                        else:
+                            page_sum = count(t, contents)
+                        matrix[pos][p+1]=page_sum #put the count of the term in the matrix
+                    print(pos)
+                    break
+                else:
+                    pass
+        except:
+            #print("No snapshot or can't decode", thisPage) #can't decode....
+            final_urls[thisPage]=""
+            matrix[pos]=999
+            
+    unique, counts = numpy.unique(matrix, return_counts=True)
+    results = dict(zip(unique, counts))
+    print (results)
+    
+    #for writing term count to a csv. you will need to convert delimited text to columns and replace the first column with the list of URLs
+
+    with open('multiterm_count_output.csv', 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        for row in matrix:
+            writer.writerow(row)
+    csvfile.close()
+
+     #print out urls in separate file
+    with open('urls_output.csv','w') as output:
+        writer=csv.writer(output)
+        for key, value in final_urls.items():
+            writer.writerow([key, value])
+    output.close()
+
+    #print out keywords in separate file
+    with open("keywords_output.csv", "w", encoding='utf-8') as outfile:
+        writer = csv.writer(outfile)
+        for key, value in keywords.items():
+            try:
+                writer.writerow([key, value[0], value[1], value[2]])
+            except IndexError:
+                writer.writerow([key, "ERROR"])
+    outfile.close()
+
+    print("The program is finished!")
+
 def counter(file, term, datesA, datesB=[]):
+    #counts a single term (one or two word phrase) and compares across timeframes
     #datesA should be in the following form: [starting year, starting month, starting day, ending year, ending month, ending day]
     #datesB = optional (for comparing two time periods). should be in same format as datesA
-    #term should be in the format ["term"] or as a phrase: ["climate", "change"] currently only supporting two word phrases
+    #term should be in the format ["term"] or as a phrase: ["climate", "change"]
 
     dates = {'first': datesA, 'second': datesB}
     
@@ -74,7 +185,7 @@ def counter(file, term, datesA, datesB=[]):
                             if len(term) == 1:
                                 page_sum = count(term[0], contents) #multiterm_count(contents) #count(term, contents) #count the term on the page.
                             else:
-                                page_sum += multiterm_count(term, contents)
+                                page_sum += two_count(term, contents)
                             sum += page_sum # add the page's sum to the overall sum
                             page_count += 1 # count the page
                             matrix[pos][col_pos]=page_sum #put the count of the term in the matrix
@@ -87,15 +198,13 @@ def counter(file, term, datesA, datesB=[]):
         col_pos = col_pos + 1
 
     #for writing term count to a csv. you will need to convert delimited text to columns and replace the first column with the list of URLs
-    with open('output/output.csv', 'w', newline='') as csvfile:
+    with open('output/term_count_output.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row in matrix:
             writer.writerow(row)
     csvfile.close()
     print("The program is finished!")
-
-
-
+    
 def linker (file, domain, datesA, datesB=[]):
     #currently only accepts looking at how a set of URLs point to each other (a square matrix)
     #currently is meant to look at links in a single domain e.g. "http://www.epa.gov" File should be a csv of links like: "/cleanpowerplan/page"
@@ -155,13 +264,16 @@ def linker (file, domain, datesA, datesB=[]):
                             #use keys/columns and check against links. is x key/column in links? does this page link to another? if so, add 1
                             for i, url in enumerate(data):
                                 if url in thisPageLinksTo: #if this page links to another domain url
+                                    #print(thisPage, url, wayback_url, pos, i) #print what this page is, what it links to, and IA url
                                    matrix[pos][i] = connection  #put a 1 at the right position. matrix[row][column]
                             break
                         except:
                             matrix[pos] = decoding_error # code for indicating decoding error
+                            #print('decoding error', version.status_code, row[0])# this will capture errors in decoding a page
                             break
             except:
                 matrix[pos] = WM_error # code for indicating IA/WM error
+                #print('IA error', row[0]) # this will capture errors where IA has no records.
         if position == 1:
             matrixA = matrix
             matrix = numpy.zeros((row_count, row_count)) #reset matrix
@@ -174,9 +286,10 @@ def linker (file, domain, datesA, datesB=[]):
     else:
         final_matrix = matrixA
 
-    with open('output/output.csv', 'w', newline='') as csvfile:
+    with open('output.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row in final_matrix:
             writer.writerow(row)
     csvfile.close()
     print("The program is finished!")
+
