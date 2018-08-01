@@ -65,10 +65,10 @@ def keyword_function(visible_text):
     #print(keydump)
     return keydump
         
-def multiterm_counter(file, term, dates):
+def multiterm_counter(file, terms, dates):
     #counts a set of one or two word terms during a single timeframe
     #dates should be in the following form: [starting year, starting month, starting day, ending year, ending month, ending day]
-    #term should be in the format ["term"], as a phrase: ["climate", "change"], or as a set of terms and/or phrases: ["climate", ["climate", "change"]]
+    #terms should be in the format ["term"], as a phrase: ["climate", "change"], or as a set of terms and/or phrases: ["climate", ["climate", "change"]]
 
     with open(file) as csvfile: 
         read = csv.reader(csvfile)
@@ -78,7 +78,7 @@ def multiterm_counter(file, term, dates):
     #multiterm_counter("test.csv", ["climate", ["energy", "independence"]], [2016, 1,1,2017,1,1], [2017,1,2,2018,1,1])
 
     row_count = len(data)
-    column_count = len(term)
+    column_count = len(terms)
     matrix = numpy.zeros((row_count, column_count)) 
     
     sum=0 # total count of term
@@ -95,7 +95,7 @@ def multiterm_counter(file, term, dates):
                     contents = gvt(contents)
                     keywords[url] = keyword_function(contents)
                     final_urls[thisPage]=url
-                    for p, t in enumerate(term):
+                    for p, t in enumerate(terms):
                         if type(t) is list:
                             page_sum = two_count(t, contents) #multiterm_count(contents) #count(term, contents) #count the term on the page.
                         else:
