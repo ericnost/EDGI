@@ -75,13 +75,12 @@ def multiterm_counter(file, terms, dates):
         data = list(read)
     csvfile.close()
 
-    #multiterm_counter("test.csv", ["climate", ["energy", "independence"]], [2016, 1,1,2017,1,1], [2017,1,2,2018,1,1])
-
+    #multiterm_counter("input/test.csv", ["climate", ["endangered", "species"]], [2016, 1,1,2017,1,1])
+    
     row_count = len(data)
     column_count = len(terms)
-    matrix = numpy.zeros((row_count, column_count)) 
+    matrix = numpy.zeros((row_count, column_count))
     
-    sum=0 # total count of term
     page_sum=0 # sum of term for a specific page
     for pos, row in enumerate(data):
         thisPage = row[0] #change for specific CSVs
@@ -97,10 +96,10 @@ def multiterm_counter(file, terms, dates):
                     final_urls[thisPage]=url
                     for p, t in enumerate(terms):
                         if type(t) is list:
-                            page_sum = two_count(t, contents) #multiterm_count(contents) #count(term, contents) #count the term on the page.
+                            page_sum = two_count(t, contents)
                         else:
                             page_sum = count(t, contents)
-                        matrix[pos][p+1]=page_sum #put the count of the term in the matrix
+                        matrix[pos][p]=page_sum #put the count of the term in the matrix
                     print(pos)
                     break
                 else:
@@ -116,21 +115,21 @@ def multiterm_counter(file, terms, dates):
     
     #for writing term count to a csv. you will need to convert delimited text to columns and replace the first column with the list of URLs
 
-    with open('multiterm_count_output.csv', 'w', newline='') as csvfile:
+    with open('output/multiterm_count_output.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row in matrix:
             writer.writerow(row)
     csvfile.close()
 
      #print out urls in separate file
-    with open('urls_output.csv','w') as output:
+    with open('output/urls_output.csv','w') as output:
         writer=csv.writer(output)
         for key, value in final_urls.items():
             writer.writerow([key, value])
     output.close()
 
     #print out keywords in separate file
-    with open("keywords_output.csv", "w", encoding='utf-8') as outfile:
+    with open("output/keywords_output.csv", "w", encoding='utf-8') as outfile:
         writer = csv.writer(outfile)
         for key, value in keywords.items():
             try:
@@ -139,70 +138,6 @@ def multiterm_counter(file, terms, dates):
                 writer.writerow([key, "ERROR"])
     outfile.close()
 
-    print("The program is finished!")
-
-def counter(file, term, datesA, datesB=[]):
-    #counts a single term (one or two word phrase) and compares across timeframes
-    #datesA should be in the following form: [starting year, starting month, starting day, ending year, ending month, ending day]
-    #datesB = optional (for comparing two time periods). should be in same format as datesA
-    #term should be in the format ["term"] or as a phrase: ["climate", "change"]
-
-    dates = {'first': datesA, 'second': datesB}
-    
-    with open(file) as csvfile: 
-        read = csv.reader(csvfile)
-        data = list(read)
-    csvfile.close()
-
-    # counter("test.csv", ["climate"], [2016, 1,1,2017,1,1], [2017,1,2,2018,1,1])
-    
-    row_count = len(data)
-    column_count = 2
-    if len(dates['second']) > 0:
-        column_count=3
-    matrix = numpy.zeros((row_count, column_count)) #we will store our data in a matrix with positions for the url, datesA count, datesB count
-    
-    col_pos=1 # the column of the matrix we start in (datesA count)
-    while col_pos <= column_count-1:
-        sum=0 # total count of term
-        page_count=0 # count of pages that had available snapshots
-        page_sum=0 # sum of term for a specific page
-        if col_pos == 1:
-            theseDates = dates['first']
-        else:
-            theseDates = dates['second']
-        for pos, row in enumerate(data):
-            try:
-                dump = internetarchive.list_versions(row[0], internetarchive.datetime(theseDates[0], theseDates[1],theseDates[2]), internetarchive.datetime(theseDates[3], theseDates[4], theseDates[5])) # list_versions calls the CDX API from internetarchive.py from the webmonitoring repo
-                versions = reversed(list(dump)) # start from the most recent snapshots
-                for version in versions: # for each version in all the snapshots 
-                    if version.status_code != '200': # if the IA snapshot was a redirect or page not found, move to the next snapshot version
-                        pass
-                    else: #if the IA snapshot captures a page live, try to decode it
-                        try:
-                            url=version.raw_url
-                            contents = requests.get(url).content.decode() #decode the url's HTML
-                            if len(term) == 1:
-                                page_sum = count(term[0], contents) #multiterm_count(contents) #count(term, contents) #count the term on the page.
-                            else:
-                                page_sum += two_count(term, contents)
-                            sum += page_sum # add the page's sum to the overall sum
-                            page_count += 1 # count the page
-                            matrix[pos][col_pos]=page_sum #put the count of the term in the matrix
-                            break
-                        except:
-                            matrix[pos][col_pos]=999 #code for capturing errors in decoding a page - PDFs, GIFs, and other formats WM has archived but which we can't count terms on
-                            break
-            except:
-                matrix[pos][col_pos]=998 # code to capture errors where WM has no snapshots or only redirect/404 snapshots
-        col_pos = col_pos + 1
-
-    #for writing term count to a csv. you will need to convert delimited text to columns and replace the first column with the list of URLs
-    with open('output/term_count_output.csv', 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        for row in matrix:
-            writer.writerow(row)
-    csvfile.close()
     print("The program is finished!")
     
 def linker (file, domain, datesA, datesB=[]):
