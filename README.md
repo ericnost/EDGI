@@ -1,6 +1,10 @@
 # EDGI
 
-A set of Python and R scripts extending the Environmental Data and Governance Intitiative's web monitoring project - specifically, their [API](https://github.com/edgi-govdata-archiving/web-monitoring-processing) into the CDX archive of Wayback Machine snapshots. 
+A set of Python, Jupyer Notebook, and R scripts extending the Environmental Data and Governance Intitiative's Environmental Enforcement Watch and web monitoring projects - including, their [API](https://github.com/edgi-govdata-archiving/web-monitoring-processing) into the CDX archive of Wayback Machine snapshots. 
+
+## `ECHO_counter-algorithm.ipynb`
+
+## `ECHO_scraper.ipynb`
 
 ## `CTRL-F.py`
 
@@ -18,7 +22,6 @@ There are also a few requirements to get started with term *analysis*. You will 
 
 ## Example usage
 
-- `CTRL-F_BC.py` is a customized instance of `CTRL-F.py` for assessing breast cancer advocacy organizations' websites.
 - `CTRL-F_Web-Monitoring.py` is a customized instance of CTRL-F for assessing US federal environmental agencies' websites.
 - `termcount-webmonitoring.R` is a customized instance of `termcount.R` for assessing changes in the use of terms by US federal environmental agencies on their websites.
 
